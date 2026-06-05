@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Stock Count — Blank Street</title>
+  <style>
+    :root {
+      --green:      #1B3A24;
+      --green-mid:  #2D6040;
+      --cream:      #F4EEE4;
+      --cream-dark: #E4D9C8;
+      --surface:    #FFFFFF;
+      --border:     #DDD4BE;
+      --text:       #141414;
+      --muted:      #8A8278;
+      --ok-bg:      #EAF4ED;
+      --ok-border:  #9DC9AA;
+      --r:          14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      height: 100dvh;
+      overflow: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .view {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--cream);
+    }
+
+    /* ════════════════════════════════════════════════════
+       HOME VIEW
+    ════════════════════════════════════════════════════ */
+
+    .home-hd {
+      background: var(--green);
+      color: #fff;
+      padding: max(20px, env(safe-area-inset-top)) 20px 18px;
+      flex-shrink: 0;
+    }
+    .home-eyebrow {
+      font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase;
+      opacity: 0.5; font-weight: 600; margin-bottom: 10px;
+    }
+    .home-hd-row { display: flex; justify-content: space-between; align-items: flex-start; }
+    .home-name   { font-size: 26px; font-weight: 750; letter-spacing: -0.5px; line-height: 1.1; }
+    .home-role   { font-size: 14px; opacity: 0.6; font-weight: 400; margin-top: 2px; }
+    .home-location-chip {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.13);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 100px; padding: 6px 12px;
+      font-size: 13px; font-weight: 600; white-space: nowrap;
+    }
+
+    .home-scroll {
+      flex: 1; overflow-y: auto;
+      padding: 0 16px; padding-bottom: 100px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .home-section-label {
+      font-size: 10.5px; font-weight: 700; letter-spacing: 1.8px;
+      text-transform: uppercase; color: var(--muted);
+      padding: 20px 4px 10px;
+    }
+
+    /* Entry cards */
+    .entry-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .entry-card.today { border-color: var(--ok-border); }
+
+    .entry-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation; user-select: none;
+    }
+    .entry-hd:active { background: var(--cream); }
+
+    .entry-hd-left { display: flex; align-items: center; gap: 12px; }
+    .entry-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%; background: var(--border); flex-shrink: 0;
+    }
+    .entry-card.today .entry-dot { background: var(--ok-border); }
+    .entry-date-label { font-size: 15px; font-weight: 650; }
+    .entry-card.today .entry-date-label { color: var(--green-mid); }
+    .entry-sub-label  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .entry-hd-right { display: flex; align-items: center; gap: 10px; }
+    .entry-time { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .entry-chevron {
+      width: 20px; height: 20px; color: var(--muted);
+      transition: transform 0.25s ease; flex-shrink: 0;
+    }
+    .entry-card.open .entry-chevron { transform: rotate(180deg); }
+
+    .entry-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1);
+      border-top: 0px solid var(--cream-dark);
+    }
+    .entry-card.open .entry-body { max-height: 900px; border-top-width: 1px; }
+    .entry-body-inner { padding: 12px 16px 16px; }
+
+    .entry-cat-label {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 1.6px;
+      text-transform: uppercase; color: var(--muted);
+      padding: 8px 0 6px;
+    }
+    .entry-cat-label:first-child { padding-top: 0; }
+
+    .entry-item-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 0; border-bottom: 1px solid var(--cream-dark);
+    }
+    .entry-item-row:last-of-type { border-bottom: none; }
+    .entry-item-name { font-size: 14px; font-weight: 500; }
+    .entry-item-val  { font-size: 14px; font-weight: 700; color: var(--green-mid); }
+
+    .entry-edit-btn {
+      display: block; width: 100%; margin-top: 14px; padding: 13px;
+      background: transparent; border: 1.5px solid var(--green);
+      border-radius: var(--r); color: var(--green);
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .entry-edit-btn:active { opacity: 0.7; }
+
+    .home-empty {
+      text-align: center; padding: 48px 24px; color: var(--muted);
+    }
+    .home-empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+    .home-empty-text { font-size: 15px; line-height: 1.5; }
+
+    .home-footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 12px 16px;
+      padding-bottom: max(14px, env(safe-area-inset-bottom));
+      background: linear-gradient(to bottom, rgba(244,238,228,0) 0%, var(--cream) 28%);
+    }
+    .home-start-btn {
+      width: 100%; padding: 18px;
+      background: var(--green); color: #fff; border: none;
+      border-radius: var(--r); font-size: 16px; font-weight: 700;
+      cursor: pointer; font-family: inherit; letter-spacing: 0.2px;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .home-start-btn:active { opacity: 0.85; }
+
+    /* ════════════════════════════════════════════════════
+       EDIT VIEW
+    ════════════════════════════════════════════════════ */
+
+    .edit-hd {
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: max(16px, env(safe-area-inset-top)) 16px 14px;
+      flex-shrink: 0;
+    }
+    .edit-back-btn {
+      background: none; border: none; color: rgba(255,255,255,0.75);
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      font-family: inherit; padding: 8px 0;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .edit-back-btn:active { opacity: 0.6; }
+    .edit-hd-title { font-size: 17px; font-weight: 700; }
+    .edit-save-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.3);
+      border-radius: 10px; color: #fff;
+      font-size: 15px; font-weight: 700; padding: 8px 18px;
+      cursor: pointer; font-family: inherit;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .edit-save-btn:active { opacity: 0.75; }
+
+    .edit-scroll {
+      flex: 1; overflow-y: auto;
+      padding: 0 16px 32px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .edit-cat-label {
+      font-size: 10.5px; font-weight: 700; letter-spacing: 1.8px;
+      text-transform: uppercase; color: var(--muted);
+      padding: 20px 4px 8px;
+    }
+
+    .edit-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      margin-bottom: 8px; overflow: hidden;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .edit-card.counted { border-color: var(--ok-border); background: var(--ok-bg); }
+
+    .edit-card-inner {
+      display: flex; align-items: center;
+      padding: 12px 14px; gap: 10px;
+    }
+    .edit-check {
+      width: 20px; height: 20px; flex-shrink: 0;
+      border-radius: 50%; border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .edit-card.counted .edit-check {
+      background: var(--green-mid); border-color: var(--green-mid);
+    }
+    .edit-item-text { flex: 1; min-width: 0; }
+    .edit-item-name { font-size: 14px; font-weight: 600; }
+    .edit-item-unit { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    .edit-stepper {
+      display: flex; align-items: center;
+      background: var(--cream); border-radius: 10px; overflow: hidden; flex-shrink: 0;
+    }
+    .edit-card.counted .edit-stepper { background: rgba(45,96,64,0.1); }
+
+    .edit-step-btn {
+      width: 40px; height: 44px;
+      border: none; background: transparent;
+      color: var(--green); font-size: 22px; font-weight: 300; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      user-select: none; transition: background 0.1s;
+    }
+    .edit-step-btn:active { background: rgba(27,58,36,0.1); }
+    .edit-step-btn:disabled { opacity: 0.2; }
+
+    .edit-step-num {
+      width: 46px; text-align: center;
+      font-size: 17px; font-weight: 700;
+      color: var(--text); border: none; background: transparent;
+      font-family: inherit; cursor: text; -moz-appearance: textfield;
+    }
+    .edit-step-num::-webkit-outer-spin-button,
+    .edit-step-num::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .edit-step-num::placeholder { color: var(--muted); font-weight: 400; }
+    .edit-step-num:focus { outline: none; }
+
+    /* ════════════════════════════════════════════════════
+       WIZARD VIEW
+    ════════════════════════════════════════════════════ */
+
+    .wiz-hd {
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; gap: 8px;
+      padding: max(14px, env(safe-area-inset-top)) 14px 14px;
+      flex-shrink: 0;
+    }
+    .wiz-back {
+      width: 76px; height: 76px; border: none;
+      background: rgba(255,255,255,0.12); border-radius: 14px; color: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .wiz-back:disabled { opacity: 0; pointer-events: none; }
+    .wiz-back:not(:disabled):active { opacity: 0.7; }
+
+    .wiz-prog-wrap { flex: 1; }
+    .wiz-prog-bar  { height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+    .wiz-prog-fill { height: 100%; background: rgba(255,255,255,0.9); border-radius: 2px; transition: width 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    .wiz-prog-label { font-size: 10px; opacity: 0.6; font-weight: 500; margin-top: 5px; }
+
+    .wiz-next {
+      height: 76px; padding: 0 22px;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.12); border-radius: 14px;
+      color: #fff; font-size: 17px; font-weight: 700;
+      cursor: pointer; flex-shrink: 0; white-space: nowrap;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .wiz-next:active { opacity: 0.75; }
+
+    .item-stage {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 20px 24px 8px; gap: 12px;
+      overflow: hidden; will-change: opacity, transform;
+    }
+    .img-placeholder {
+      width: 100%; max-width: 340px; aspect-ratio: 4/3;
+      background: var(--cream-dark); border-radius: 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; flex-shrink: 0;
+    }
+    .img-ph-label { font-size: 12px; color: #B8AD9E; font-weight: 500; }
+    .item-cat      { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+    .item-name-big { font-size: 26px; font-weight: 750; letter-spacing: -0.5px; text-align: center; }
+    .item-unit-big { font-size: 15px; color: var(--muted); }
+
+    .stepper-wrap { flex-shrink: 0; background: var(--surface); border-top: 1.5px solid var(--border); }
+    .stepper-row  { display: flex; align-items: center; }
+    .step-btn {
+      flex: 1; height: 84px; border: none; background: transparent;
+      color: var(--green); font-size: 44px; font-weight: 200; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      user-select: none; transition: background 0.1s;
+    }
+    .step-btn:active   { background: rgba(27,58,36,0.07); }
+    .step-btn:disabled { color: var(--cream-dark); }
+    .step-num {
+      width: 130px; text-align: center;
+      font-size: 52px; font-weight: 700; letter-spacing: -2px;
+      color: var(--text); border: none; background: transparent;
+      font-family: inherit; cursor: text; -moz-appearance: textfield;
+    }
+    .step-num::-webkit-outer-spin-button,
+    .step-num::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .step-num::placeholder { font-size: 48px; font-weight: 300; color: var(--cream-dark); letter-spacing: 0; }
+    .step-num:focus { outline: none; }
+    .stepper-safe { height: max(14px, env(safe-area-inset-bottom)); background: var(--surface); }
+
+    /* ════════════════════════════════════════════════════
+       SUMMARY VIEW
+    ════════════════════════════════════════════════════ */
+
+    .sum-hd { background: var(--green); color: #fff; padding: max(16px, env(safe-area-inset-top)) 20px 14px; flex-shrink: 0; }
+    .sum-hd-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+    .sum-eyebrow { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; opacity: 0.55; font-weight: 600; }
+    .sum-date    { font-size: 13px; opacity: 0.6; font-weight: 500; }
+    .sum-title   { font-size: 24px; font-weight: 750; letter-spacing: -0.5px; margin-bottom: 12px; }
+    .sum-prog-bar  { height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+    .sum-prog-fill { height: 100%; background: rgba(255,255,255,0.85); border-radius: 2px; }
+    .sum-prog-label { font-size: 12px; opacity: 0.55; font-weight: 500; }
+
+    .sum-scroll { flex: 1; overflow-y: auto; padding: 0 16px 16px; -webkit-overflow-scrolling: touch; }
+    .sum-cat-label { font-size: 10.5px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: var(--muted); padding: 20px 4px 8px; }
+
+    .sum-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--r); margin-bottom: 8px; overflow: hidden; }
+    .sum-card.counted { border-color: var(--ok-border); background: var(--ok-bg); }
+    .sum-card-inner { display: flex; align-items: center; padding: 14px 16px; gap: 12px; }
+    .sum-check       { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: var(--green-mid); display: flex; align-items: center; justify-content: center; }
+    .sum-check-empty { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--border); }
+    .sum-item-text { flex: 1; min-width: 0; }
+    .sum-item-name { font-size: 15px; font-weight: 600; }
+    .sum-item-cat  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .sum-item-val  { font-size: 20px; font-weight: 700; color: var(--green-mid); }
+    .sum-item-u    { font-size: 12px; color: var(--muted); margin-left: 2px; font-weight: 500; }
+    .sum-item-dash { font-size: 20px; font-weight: 400; color: var(--muted); }
+
+    .sum-footer { flex-shrink: 0; padding: 10px 16px; padding-bottom: max(14px, env(safe-area-inset-bottom)); background: linear-gradient(to bottom, rgba(244,238,228,0) 0%, var(--cream) 22%); display: flex; flex-direction: column; gap: 10px; }
+    .sum-btn { width: 100%; padding: 17px; border-radius: var(--r); font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity 0.15s; letter-spacing: 0.1px; }
+    .sum-btn:active  { opacity: 0.8; }
+    .btn-primary { background: var(--green); color: #fff; border: none; }
+    .btn-outline  { background: transparent; color: var(--green); border: 2px solid var(--green); }
+    .btn-ghost    { background: transparent; color: var(--muted); border: none; font-weight: 500; font-size: 14px; }
+
+    /* ════════════════════════════════════════════════════
+       SUCCESS SCREEN
+    ════════════════════════════════════════════════════ */
+
+    .success-view { position: fixed; inset: 0; background: var(--green); color: #fff; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 48px; z-index: 200; }
+    .success-view.show { display: flex; }
+    .success-ring  { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 24px; }
+    .success-title { font-size: 28px; font-weight: 750; letter-spacing: -0.5px; margin-bottom: 8px; text-align: center; }
+    .success-sub   { font-size: 15px; opacity: 0.65; text-align: center; line-height: 1.5; margin-bottom: 48px; }
+    .success-new   { width: 100%; padding: 18px; background: rgba(255,255,255,0.15); color: #fff; border: 2px solid rgba(255,255,255,0.35); border-radius: var(--r); font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; transition: opacity 0.15s; }
+    .success-new:active { opacity: 0.75; }
+
+    /* ════════════════════════════════════════════════════
+       SHARED POPUP STYLES
+    ════════════════════════════════════════════════════ */
+
+    .popup-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 150; display: none;
+      align-items: center; justify-content: center;
+      padding: 32px;
+    }
+    .popup-backdrop.open { display: flex; }
+
+    .popup-card {
+      background: var(--surface); border-radius: 20px;
+      padding: 28px 24px 20px; width: 100%; max-width: 300px;
+      text-align: center;
+      animation: cardIn 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes cardIn {
+      from { transform: scale(0.88); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .popup-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .popup-msg   { font-size: 14px; color: var(--muted); line-height: 1.45; margin-bottom: 24px; }
+    .popup-btns  { display: flex; gap: 10px; }
+    .popup-cancel {
+      flex: 1; padding: 14px;
+      background: var(--cream); border: 1.5px solid var(--border);
+      border-radius: var(--r); font-size: 15px; font-weight: 600;
+      color: var(--muted); cursor: pointer; font-family: inherit;
+      -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+    }
+    .popup-cancel:active { opacity: 0.7; }
+    .popup-confirm {
+      flex: 1; padding: 14px;
+      background: var(--green); border: none;
+      border-radius: var(--r); font-size: 15px; font-weight: 700;
+      color: #fff; cursor: pointer; font-family: inherit;
+      -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+    }
+    .popup-confirm:active { opacity: 0.8; }
+    .popup-confirm.warn { background: #B83232; }
+
+    /* ════════════════════════════════════════════════════
+       SETTINGS
+    ════════════════════════════════════════════════════ */
+
+    .settings-btn {
+      width: 36px; height: 36px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px; color: rgba(255,255,255,0.75);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .settings-btn:active { opacity: 0.6; }
+
+    #settings-backdrop { align-items: flex-end; padding: 0; }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .settings-sheet {
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      animation: slideUp 0.28s cubic-bezier(0.32,0.72,0,1);
+    }
+    .sheet-handle-wrap { padding: 12px 0 4px; display: flex; justify-content: center; }
+    .sheet-handle-bar  { width: 36px; height: 4px; background: var(--border); border-radius: 2px; }
+
+    .settings-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 20px 12px;
+      border-bottom: 1px solid var(--cream-dark);
+    }
+    .settings-title { font-size: 17px; font-weight: 700; }
+    .settings-close {
+      width: 32px; height: 32px;
+      border: none; background: var(--cream); border-radius: 50%;
+      color: var(--muted); cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+    }
+    .settings-close:active { opacity: 0.6; }
+
+    .settings-body { padding: 12px 16px; }
+
+    .settings-row {
+      width: 100%;
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      background: transparent; border: 1.5px solid var(--border);
+      border-radius: var(--r); cursor: pointer; font-family: inherit;
+      text-align: left;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .settings-row:active { opacity: 0.7; }
+    .settings-row.destructive { border-color: #E8C0C0; background: #FFF5F5; color: #B83232; }
+
+    .settings-row-text { flex: 1; }
+    .settings-row-label { display: block; font-size: 15px; font-weight: 600; }
+    .settings-row-sub   { display: block; font-size: 12px; opacity: 0.65; margin-top: 2px; }
+
+    /* ── Onboarding overlay ─────────────────────────────── */
+    .onboard-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(27,58,36,0.88);
+      backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .onboard-overlay.hidden { display: none; }
+    .onboard-card {
+      background: var(--surface); border-radius: 24px;
+      padding: 32px 28px 28px; width: 100%; max-width: 360px;
+      animation: cardIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .onboard-logo {
+      font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase;
+      font-weight: 700; color: var(--muted); margin-bottom: 20px;
+    }
+    .onboard-title {
+      font-size: 22px; font-weight: 750; letter-spacing: -0.4px;
+      color: var(--text); margin-bottom: 6px;
+    }
+    .onboard-sub {
+      font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 24px;
+    }
+    .onboard-divider {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    }
+    .onboard-divider::before, .onboard-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .onboard-divider span { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .onboard-option {
+      background: var(--cream); border: 1.5px solid var(--border);
+      border-radius: var(--r); padding: 14px 16px; margin-bottom: 10px;
+      cursor: default;
+    }
+    .onboard-option-label {
+      font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .onboard-option-body { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+    .onboard-option-body kbd {
+      display: inline-block; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 5px;
+      padding: 1px 5px; font-size: 11.5px; font-family: inherit;
+      color: var(--text); font-weight: 600;
+    }
+    .onboard-btn {
+      width: 100%; margin-top: 20px; padding: 16px;
+      background: var(--green); color: #fff; border: none;
+      border-radius: var(--r); font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      -webkit-tap-highlight-color: transparent; transition: opacity 0.15s;
+    }
+    .onboard-btn:active { opacity: 0.85; }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 100px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--text); color: #fff;
+      padding: 10px 18px; border-radius: 100px;
+      font-size: 14px; font-weight: 500;
+      opacity: 0; pointer-events: none; white-space: nowrap; z-index: 300;
+      transition: opacity 0.22s, transform 0.22s;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ══ HOME VIEW ═══════════════════════════════════════════════════════ -->
+<div class="view" id="home-view">
+  <header class="home-hd">
+    <p class="home-eyebrow">Blank Street · Stock Count</p>
+    <div class="home-hd-row">
+      <div>
+        <h1 class="home-name">Jordan Kim</h1>
+        <p class="home-role">Inventory Manager</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="home-location-chip">
+          <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
+            <path d="M6 0C3.24 0 1 2.24 1 5c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5Zm0 6.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" fill="currentColor"/>
+          </svg>
+          Shoreditch
+        </div>
+        <button class="settings-btn" onclick="openSettings()" aria-label="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="home-scroll">
+    <p class="home-section-label">Count History</p>
+    <div id="entries-list"></div>
+  </div>
+
+  <div class="home-footer">
+    <button class="home-start-btn" onclick="startNewEntry()">+ Start new entry</button>
+  </div>
+</div>
+
+
+<!-- ══ EDIT VIEW ═══════════════════════════════════════════════════════ -->
+<div class="view" id="edit-view" style="display:none">
+  <header class="edit-hd">
+    <button class="edit-back-btn" onclick="cancelEdit()">← Cancel</button>
+    <span class="edit-hd-title">Edit Count</span>
+    <button class="edit-save-btn" onclick="saveEdit()">Save</button>
+  </header>
+  <div class="edit-scroll" id="edit-scroll"></div>
+</div>
+
+
+<!-- ══ WIZARD VIEW ═════════════════════════════════════════════════════ -->
+<div class="view" id="wizard-view" style="display:none">
+  <header class="wiz-hd">
+    <button class="wiz-back" id="wiz-back">
+      <svg width="30" height="30" viewBox="0 0 20 20" fill="none">
+        <path d="M12.5 5L7.5 10L12.5 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="wiz-prog-wrap">
+      <div class="wiz-prog-bar"><div class="wiz-prog-fill" id="wiz-prog-fill" style="width:10%"></div></div>
+      <p class="wiz-prog-label" id="wiz-prog-label">Item 1 of 10</p>
+    </div>
+    <button class="wiz-next" id="wiz-next" onclick="wizGoNext()">Next →</button>
+  </header>
+
+  <div class="item-stage" id="item-stage">
+    <div class="img-placeholder">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+        <rect x="5" y="9" width="34" height="26" rx="4" stroke="#B8AD9E" stroke-width="2"/>
+        <circle cx="15" cy="18" r="3.5" stroke="#B8AD9E" stroke-width="2"/>
+        <path d="M5 30L15 19L22 27L30 18L39 30" stroke="#B8AD9E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="img-ph-label">Image placeholder</span>
+    </div>
+    <p class="item-cat"       id="item-cat"></p>
+    <h2 class="item-name-big" id="item-name-big"></h2>
+    <p class="item-unit-big"  id="item-unit-big"></p>
+  </div>
+
+  <div class="stepper-wrap">
+    <div class="stepper-row">
+      <button class="step-btn" id="step-dec" onclick="wizDec()">−</button>
+      <input class="step-num" id="step-num" type="number" inputmode="numeric" min="0" placeholder="—"
+             onchange="wizChange(this)" onfocus="wizFocus(this)"
+             onblur="wizBlur(this)" onkeydown="if(event.key==='Enter')this.blur()">
+      <button class="step-btn" onclick="wizInc()">+</button>
+    </div>
+    <div class="stepper-safe"></div>
+  </div>
+</div>
+
+
+<!-- ══ SUMMARY VIEW ════════════════════════════════════════════════════ -->
+<div class="view" id="summary-view" style="display:none">
+  <header class="sum-hd">
+    <div class="sum-hd-row">
+      <p class="sum-eyebrow">Blank Street</p>
+      <span class="sum-date" id="sum-date"></span>
+    </div>
+    <h1 class="sum-title">Stock Count</h1>
+    <div class="sum-prog-bar"><div class="sum-prog-fill" id="sum-prog-fill" style="width:100%"></div></div>
+    <p class="sum-prog-label" id="sum-prog-label">10 of 10 items counted</p>
+  </header>
+  <div class="sum-scroll" id="sum-scroll"></div>
+  <div class="sum-footer">
+    <button class="sum-btn btn-primary" onclick="submitCount()">Submit count</button>
+    <button class="sum-btn btn-outline" onclick="backToWizard()">← Edit counts</button>
+    <button class="sum-btn btn-ghost"   onclick="copyCount()">Copy to clipboard</button>
+  </div>
+</div>
+
+
+<!-- ══ SUCCESS SCREEN ══════════════════════════════════════════════════ -->
+<div class="success-view" id="success-view">
+  <div class="success-ring">✓</div>
+  <h2 class="success-title" id="success-title">Count submitted</h2>
+  <p  class="success-sub"   id="success-sub"></p>
+  <button class="success-new" onclick="goHome()">Back to home</button>
+</div>
+
+
+<!-- ══ POPUP: zero confirmation ════════════════════════════════════════ -->
+<div class="popup-backdrop" id="zero-popup" onclick="if(event.target===this)closeZeroPopup()">
+  <div class="popup-card">
+    <p class="popup-title" id="zero-popup-name"></p>
+    <p class="popup-msg">has a count of zero.<br>Are you sure?</p>
+    <div class="popup-btns">
+      <button class="popup-cancel"  onclick="closeZeroPopup()">Cancel</button>
+      <button class="popup-confirm" onclick="confirmZero()">Mark as zero</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ POPUP: new entry warning ════════════════════════════════════════ -->
+<div class="popup-backdrop" id="new-entry-popup" onclick="if(event.target===this)closeNewEntryPopup()">
+  <div class="popup-card">
+    <p class="popup-title">Already counted today</p>
+    <p class="popup-msg">Starting a new one will delete today's inventory. Are you sure?</p>
+    <div class="popup-btns">
+      <button class="popup-cancel"           onclick="closeNewEntryPopup()">Cancel</button>
+      <button class="popup-confirm warn"     onclick="confirmNewEntry()">Start fresh</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ SETTINGS SHEET ══════════════════════════════════════════════════ -->
+<div class="popup-backdrop" id="settings-backdrop" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-sheet">
+    <div class="sheet-handle-wrap"><div class="sheet-handle-bar"></div></div>
+    <div class="settings-header">
+      <span class="settings-title">Settings</span>
+      <button class="settings-close" onclick="closeSettings()">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M2 2l14 14M16 2L2 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="settings-body">
+      <button class="settings-row destructive" onclick="restartPrototype()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="settings-row-text">
+          <span class="settings-row-label">Restart prototype</span>
+          <span class="settings-row-sub">Clears new counts, keeps last 7 days</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ONBOARDING OVERLAY ═══════════════════════════════════════════════ -->
+<div class="onboard-overlay" id="onboard-overlay">
+  <div class="onboard-card">
+    <p class="onboard-logo">Blank Street · Stock Count</p>
+    <h2 class="onboard-title">Best viewed on iPad</h2>
+    <p class="onboard-sub">This prototype is optimised for a tablet viewport. For the best experience, open it on an iPad — or simulate one in your browser.</p>
+    <div class="onboard-divider"><span>How to simulate iPad in browser</span></div>
+    <div class="onboard-option">
+      <p class="onboard-option-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="18" r="1" fill="currentColor"/></svg>
+        Option 1 — iPad (physical)
+      </p>
+      <p class="onboard-option-body">Open this URL directly in Safari on an iPad for the full experience.</p>
+    </div>
+    <div class="onboard-option">
+      <p class="onboard-option-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Option 2 — Browser dev tools
+      </p>
+      <p class="onboard-option-body">
+        Press <kbd>F12</kbd> (or <kbd>⌘⌥I</kbd> on Mac) → click the <strong>device toolbar</strong> icon → select <strong>iPad Air</strong> from the device list.
+      </p>
+    </div>
+    <button class="onboard-btn" onclick="dismissOnboard()">Got it — continue anyway</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Items ─────────────────────────────────────────────────────────────
+
+  const ITEMS = [
+    { id:'beans',   name:'Espresso Beans',    unit:'bags',    cat:'Coffee & Matcha' },
+    { id:'matcha',  name:'Matcha Powder',      unit:'tubs',    cat:'Coffee & Matcha' },
+    { id:'milk-w',  name:'Whole Milk',         unit:'L',       cat:'Milk'            },
+    { id:'milk-o',  name:'Oat Milk',           unit:'L',       cat:'Milk'            },
+    { id:'syr-van', name:'Vanilla Syrup',      unit:'bottles', cat:'Syrups'          },
+    { id:'syr-car', name:'Caramel Syrup',      unit:'bottles', cat:'Syrups'          },
+    { id:'syr-brs', name:'Brown Sugar Syrup',  unit:'bottles', cat:'Syrups'          },
+    { id:'cup-s',   name:'Cups — Small',       unit:'units',   cat:'Packaging'       },
+    { id:'cup-l',   name:'Cups — Large',       unit:'units',   cat:'Packaging'       },
+    { id:'lids',    name:'Lids',               unit:'packs',   cat:'Packaging'       },
+  ];
+
+  // ── Historical entries ────────────────────────────────────────────────
+
+  function makeTs(daysBack, h, m) {
+    const d = new Date(); d.setDate(d.getDate() - daysBack); d.setHours(h, m, 0, 0); return d;
+  }
+
+  function getBaselineEntries() {
+    return [
+      { id:'base1', ts: makeTs(1,  9,  5), counts: { beans:5, matcha:2, 'milk-w':12, 'milk-o':8,  'syr-van':3, 'syr-car':2, 'syr-brs':4, 'cup-s':150, 'cup-l':100, lids:10 } },
+      { id:'base2', ts: makeTs(2,  8, 45), counts: { beans:4, matcha:2, 'milk-w':15, 'milk-o':7,  'syr-van':5, 'syr-car':3, 'syr-brs':3, 'cup-s':160, 'cup-l':110, lids:12 } },
+      { id:'base3', ts: makeTs(3,  9, 30), counts: { beans:6, matcha:3, 'milk-w':14, 'milk-o':9,  'syr-van':4, 'syr-car':4, 'syr-brs':2, 'cup-s':140, 'cup-l':95,  lids:9  } },
+      { id:'base4', ts: makeTs(4,  9, 20), counts: { beans:5, matcha:2, 'milk-w':12, 'milk-o':8,  'syr-van':4, 'syr-car':3, 'syr-brs':3, 'cup-s':148, 'cup-l':97,  lids:10 } },
+      { id:'base5', ts: makeTs(5,  8, 30), counts: { beans:6, matcha:3, 'milk-w':16, 'milk-o':6,  'syr-van':3, 'syr-car':4, 'syr-brs':2, 'cup-s':155, 'cup-l':102, lids:13 } },
+      { id:'base6', ts: makeTs(6,  9, 10), counts: { beans:4, matcha:1, 'milk-w':11, 'milk-o':9,  'syr-van':5, 'syr-car':2, 'syr-brs':4, 'cup-s':130, 'cup-l':88,  lids:9  } },
+      { id:'base7', ts: makeTs(7,  8, 55), counts: { beans:5, matcha:2, 'milk-w':13, 'milk-o':7,  'syr-van':4, 'syr-car':3, 'syr-brs':3, 'cup-s':145, 'cup-l':95,  lids:11 } },
+    ];
+  }
+
+  let entries = [
+    { id:'e0', ts: makeTs(0,  8, 14), counts: { beans:3, matcha:1, 'milk-w':10, 'milk-o':6,  'syr-van':4, 'syr-car':2, 'syr-brs':3, 'cup-s':120, 'cup-l':85,  lids:8  } },
+    ...getBaselineEntries(),
+  ];
+
+  // ── App state ─────────────────────────────────────────────────────────
+
+  const state = {
+    // wizard
+    idx: 0,
+    counts: Object.fromEntries(ITEMS.map(i => [i.id, null])),
+    replaceId: null,   // today entry to delete when new entry is submitted
+    // edit
+    editingId: null,
+    // home
+    openEntryId: null,
+  };
+
+  // ── Boot ──────────────────────────────────────────────────────────────
+
+  renderHome();
+
+  // ══════════════════════════════════════════════════════════════════════
+  // HOME
+  // ══════════════════════════════════════════════════════════════════════
+
+  function renderHome() {
+    const list = document.getElementById('entries-list');
+    if (entries.length === 0) {
+      list.innerHTML = `<div class="home-empty"><div class="home-empty-icon">📋</div><p class="home-empty-text">No counts yet.<br>Tap <strong>Start new entry</strong> to begin.</p></div>`;
+      return;
+    }
+    list.innerHTML = entries.map(entryCardHTML).join('');
+    if (state.openEntryId) {
+      const card = document.getElementById('ecard-' + state.openEntryId);
+      if (card) card.classList.add('open');
+    }
+  }
+
+  function entryCardHTML(e) {
+    const today     = sameDay(e.ts, new Date());
+    const dateLabel = fmtDate(e.ts);
+    const timeLabel = e.ts.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+    let bodyRows = '';
+    let lastCat  = '';
+    ITEMS.forEach(item => {
+      if (item.cat !== lastCat) { bodyRows += `<p class="entry-cat-label">${item.cat}</p>`; lastCat = item.cat; }
+      const v = e.counts[item.id];
+      bodyRows += `<div class="entry-item-row"><span class="entry-item-name">${item.name}</span><span class="entry-item-val">${v != null ? v + ' ' + item.unit : '—'}</span></div>`;
+    });
+
+    const editBtn = today
+      ? `<button class="entry-edit-btn" onclick="editEntry('${e.id}');event.stopPropagation()">Edit count</button>`
+      : '';
+
+    return `
+      <div class="entry-card${today ? ' today' : ''}" id="ecard-${e.id}">
+        <div class="entry-hd" onclick="toggleEntry('${e.id}')">
+          <div class="entry-hd-left">
+            <div class="entry-dot"></div>
+            <div>
+              <p class="entry-date-label">${dateLabel}</p>
+              <p class="entry-sub-label">${today ? 'Today · ' : ''}10 items</p>
+            </div>
+          </div>
+          <div class="entry-hd-right">
+            <span class="entry-time">${timeLabel}</span>
+            <svg class="entry-chevron" viewBox="0 0 20 20" fill="none">
+              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="entry-body" id="ebody-${e.id}">
+          <div class="entry-body-inner">${bodyRows}${editBtn}</div>
+        </div>
+      </div>`;
+  }
+
+  function toggleEntry(id) {
+    const card   = document.getElementById('ecard-' + id);
+    const isOpen = card.classList.contains('open');
+    document.querySelectorAll('.entry-card.open').forEach(c => c.classList.remove('open'));
+    if (!isOpen) {
+      card.classList.add('open');
+      state.openEntryId = id;
+      setTimeout(() => card.scrollIntoView({ behavior:'smooth', block:'nearest' }), 80);
+    } else {
+      state.openEntryId = null;
+    }
+  }
+
+  function startNewEntry() {
+    const todayEntry = entries.find(e => sameDay(e.ts, new Date()));
+    if (todayEntry) {
+      state.replaceId = todayEntry.id;
+      document.getElementById('new-entry-popup').classList.add('open');
+      return;
+    }
+    beginWizard();
+  }
+
+  function closeNewEntryPopup() {
+    state.replaceId = null;
+    document.getElementById('new-entry-popup').classList.remove('open');
+  }
+
+  function confirmNewEntry() {
+    document.getElementById('new-entry-popup').classList.remove('open');
+    beginWizard(); // replaceId already set in state
+  }
+
+  function wizardGoHome() {
+    state.replaceId   = null; // old entry is NOT deleted — user abandoned the new count
+    state.openEntryId = entries.length > 0 ? entries[0].id : null;
+    renderHome();
+    show('home-view');
+  }
+
+  function beginWizard() {
+    state.idx = 0;
+    ITEMS.forEach(i => { state.counts[i.id] = null; });
+    show('wizard-view');
+    renderWizard();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // EDIT VIEW
+  // ══════════════════════════════════════════════════════════════════════
+
+  function editEntry(id) {
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+    state.editingId = id;
+    // Copy entry counts into state
+    ITEMS.forEach(i => { state.counts[i.id] = entry.counts[i.id] ?? 0; });
+    renderEditView();
+    show('edit-view');
+  }
+
+  function renderEditView() {
+    let html = '';
+    let lastCat = '';
+    ITEMS.forEach(item => {
+      if (item.cat !== lastCat) {
+        html += `<p class="edit-cat-label">${item.cat}</p>`;
+        lastCat = item.cat;
+      }
+      const val     = state.counts[item.id];
+      const counted = val !== null && val > 0;
+      html += `
+        <div class="edit-card${counted ? ' counted' : ''}" id="editcard-${item.id}">
+          <div class="edit-card-inner">
+            <div class="edit-check">
+              ${counted ? `<svg width="10" height="8" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+            </div>
+            <div class="edit-item-text">
+              <div class="edit-item-name">${item.name}</div>
+              <div class="edit-item-unit">${item.unit}</div>
+            </div>
+            <div class="edit-stepper">
+              <button class="edit-step-btn" onclick="editDec('${item.id}')"
+                ${val <= 0 ? 'disabled' : ''}>−</button>
+              <input class="edit-step-num" id="eval-${item.id}"
+                type="number" inputmode="numeric" min="0"
+                value="${val !== null ? val : ''}" placeholder="—"
+                onchange="editChange('${item.id}', this)"
+                onblur="editBlur('${item.id}', this)"
+                onkeydown="if(event.key==='Enter')this.blur()">
+              <button class="edit-step-btn" onclick="editInc('${item.id}')">+</button>
+            </div>
+          </div>
+        </div>`;
+    });
+    document.getElementById('edit-scroll').innerHTML = html;
+  }
+
+  function editInc(id) {
+    const cur = state.counts[id] ?? 0;
+    state.counts[id] = cur + 1;
+    refreshEditCard(id);
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function editDec(id) {
+    const cur = state.counts[id] ?? 0;
+    if (cur <= 0) return;
+    state.counts[id] = cur - 1;
+    refreshEditCard(id);
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function editChange(id, input) {
+    const n = parseInt(input.value, 10);
+    if (!isNaN(n) && n >= 0) { state.counts[id] = n; refreshEditCard(id); }
+  }
+
+  function editBlur(id, input) {
+    const n = parseInt(input.value, 10);
+    if (!isNaN(n) && n >= 0) { state.counts[id] = n; }
+    refreshEditCard(id);
+  }
+
+  function refreshEditCard(id) {
+    const val     = state.counts[id];
+    const counted = val !== null && val > 0;
+    const card    = document.getElementById('editcard-' + id);
+    const input   = document.getElementById('eval-' + id);
+    const decBtn  = card.querySelector('.edit-step-btn:first-child');
+
+    card.classList.toggle('counted', counted);
+    input.value     = val !== null ? val : '';
+    decBtn.disabled = !val || val <= 0;
+
+    // Update checkmark
+    const check = card.querySelector('.edit-check');
+    check.innerHTML = counted
+      ? `<svg width="10" height="8" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+      : '';
+  }
+
+  function saveEdit() {
+    const entry = entries.find(e => e.id === state.editingId);
+    if (entry) {
+      entry.counts = { ...state.counts };
+    }
+    state.editingId = null;
+    state.openEntryId = entry ? entry.id : null;
+    renderHome();
+    show('home-view');
+    showToast('Count updated ✓');
+  }
+
+  function cancelEdit() {
+    state.editingId = null;
+    show('home-view');
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // WIZARD
+  // ══════════════════════════════════════════════════════════════════════
+
+  function renderWizard() {
+    const item = ITEMS[state.idx];
+    const val  = state.counts[item.id];
+
+    // Left button: home on item 1, back arrow on items 2+
+    const backBtn = document.getElementById('wiz-back');
+    backBtn.disabled = false;
+    if (state.idx === 0) {
+      backBtn.onclick = wizardGoHome;
+      backBtn.setAttribute('aria-label', 'Home');
+      backBtn.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <path d="M3 12.5L12 4L21 12.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 10.8V20a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-9.2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+    } else {
+      backBtn.onclick = wizGoBack;
+      backBtn.setAttribute('aria-label', 'Back');
+      backBtn.innerHTML = `<svg width="30" height="30" viewBox="0 0 20 20" fill="none">
+        <path d="M12.5 5L7.5 10L12.5 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+    }
+
+    document.getElementById('wiz-next').textContent =
+      state.idx === ITEMS.length - 1 ? 'Complete Count' : 'Next →';
+
+    const pct = ((state.idx + 1) / ITEMS.length * 100).toFixed(0);
+    document.getElementById('wiz-prog-fill').style.width = pct + '%';
+    document.getElementById('wiz-prog-label').textContent = `Item ${state.idx + 1} of ${ITEMS.length}`;
+
+    document.getElementById('item-cat').textContent      = item.cat;
+    document.getElementById('item-name-big').textContent = item.name;
+    document.getElementById('item-unit-big').textContent = item.unit;
+
+    document.getElementById('step-num').value = val !== null ? val : '';
+    document.getElementById('step-dec').disabled = val === null || val <= 0;
+  }
+
+  async function wizGoNext() {
+    const val = state.counts[ITEMS[state.idx].id];
+    if (val === null || val === 0) { openZeroPopup(ITEMS[state.idx].name); return; }
+    if (state.idx === ITEMS.length - 1) { showSummary(); return; }
+    await slide('next');
+    state.idx++;
+    renderWizard();
+  }
+
+  async function wizGoBack() {
+    if (state.idx === 0) return;
+    await slide('back');
+    state.idx--;
+    renderWizard();
+  }
+
+  function backToWizard() {
+    show('wizard-view');
+    state.idx = ITEMS.length - 1;
+    renderWizard();
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function slide(dir) {
+    const el = document.getElementById('item-stage');
+    const outX = dir === 'next' ? '-28px' : '28px';
+    const inX  = dir === 'next' ?  '28px' : '-28px';
+    el.style.transition = 'opacity 0.13s ease, transform 0.13s ease';
+    el.style.opacity = '0'; el.style.transform = `translateX(${outX})`;
+    await sleep(130);
+    el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = `translateX(${inX})`;
+    el.offsetWidth;
+    el.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    el.style.opacity = '1'; el.style.transform = 'translateX(0)';
+  }
+
+  function setCount(n) {
+    state.counts[ITEMS[state.idx].id] = Math.max(0, n);
+    renderWizard();
+    if (navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function wizInc() { const c = state.counts[ITEMS[state.idx].id]; setCount(c === null ? 1 : c + 1); }
+  function wizDec() { const c = state.counts[ITEMS[state.idx].id]; if (c === null || c <= 0) return; setCount(c - 1); }
+  function wizFocus(i) { if (state.counts[ITEMS[state.idx].id] === null) i.value = ''; }
+  function wizChange(i) { const n = parseInt(i.value,10); if (!isNaN(n) && n >= 0) setCount(n); }
+  function wizBlur(i)  { const n = parseInt(i.value,10); if (!isNaN(n) && n >= 0) setCount(n); else renderWizard(); }
+
+  // ── Zero popup ────────────────────────────────────────────────────────
+
+  function openZeroPopup(name) {
+    document.getElementById('zero-popup-name').textContent = name;
+    document.getElementById('zero-popup').classList.add('open');
+  }
+  function closeZeroPopup() { document.getElementById('zero-popup').classList.remove('open'); }
+
+  async function confirmZero() {
+    closeZeroPopup();
+    state.counts[ITEMS[state.idx].id] = 0;
+    renderWizard();
+    if (state.idx === ITEMS.length - 1) { showSummary(); return; }
+    await slide('next');
+    state.idx++;
+    renderWizard();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // SUMMARY
+  // ══════════════════════════════════════════════════════════════════════
+
+  function showSummary() {
+    const now = new Date();
+    document.getElementById('sum-date').textContent =
+      now.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' }) +
+      ' · ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+    const counted = Object.values(state.counts).filter(v => v !== null).length;
+    document.getElementById('sum-prog-fill').style.width  = (counted / ITEMS.length * 100) + '%';
+    document.getElementById('sum-prog-label').textContent = `${counted} of ${ITEMS.length} items counted`;
+
+    let html = '', lastCat = '';
+    ITEMS.forEach(item => {
+      if (item.cat !== lastCat) { html += `<p class="sum-cat-label">${item.cat}</p>`; lastCat = item.cat; }
+      const val = state.counts[item.id]; const ok = val !== null;
+      html += `
+        <div class="sum-card${ok ? ' counted' : ''}">
+          <div class="sum-card-inner">
+            ${ok ? `<div class="sum-check"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>` : `<div class="sum-check-empty"></div>`}
+            <div class="sum-item-text"><div class="sum-item-name">${item.name}</div><div class="sum-item-cat">${item.cat}</div></div>
+            <div>${ok ? `<span class="sum-item-val">${val}</span><span class="sum-item-u">${item.unit}</span>` : `<span class="sum-item-dash">—</span>`}</div>
+          </div>
+        </div>`;
+    });
+    document.getElementById('sum-scroll').innerHTML = html;
+    show('summary-view');
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // SUBMIT
+  // ══════════════════════════════════════════════════════════════════════
+
+  function submitCount() {
+    // Remove today's entry if this is a replacement
+    if (state.replaceId) {
+      entries = entries.filter(e => e.id !== state.replaceId);
+      state.replaceId = null;
+    }
+    // Add new entry
+    entries.unshift({ id: 'e' + Date.now(), ts: new Date(), counts: { ...state.counts } });
+
+    document.getElementById('success-title').textContent = 'Count submitted';
+    document.getElementById('success-sub').textContent   =
+      new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+    document.getElementById('success-view').classList.add('show');
+  }
+
+  function goHome() {
+    document.getElementById('success-view').classList.remove('show');
+    state.openEntryId = entries.length > 0 ? entries[0].id : null;
+    renderHome();
+    show('home-view');
+  }
+
+  // ── Copy ──────────────────────────────────────────────────────────────
+
+  function buildText() {
+    const now = new Date();
+    const date = now.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+    const time = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    let out = `BLANK STREET — STOCK COUNT\n${date} | ${time}\n${'─'.repeat(34)}\n`;
+    let lastCat = '';
+    ITEMS.forEach(item => {
+      if (item.cat !== lastCat) { out += `\n${item.cat.toUpperCase()}\n`; lastCat = item.cat; }
+      const v = state.counts[item.id];
+      out += `  ${item.name.padEnd(24)}${v !== null ? `${v} ${item.unit}` : 'NOT COUNTED'}\n`;
+    });
+    return out;
+  }
+
+  function copyCount() {
+    const text = buildText();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => showToast('Copied ✓'));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); showToast('Copied ✓'); }
+      catch { showToast('Copy failed'); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────
+
+  function show(id) {
+    ['home-view','edit-view','wizard-view','summary-view'].forEach(v => {
+      document.getElementById(v).style.display = v === id ? 'flex' : 'none';
+    });
+  }
+
+  function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() &&
+           a.getMonth()    === b.getMonth()    &&
+           a.getDate()     === b.getDate();
+  }
+
+  function fmtDate(ts) {
+    const now = new Date();
+    const yest = new Date(now); yest.setDate(now.getDate() - 1);
+    if (sameDay(ts, now))  return 'Today';
+    if (sameDay(ts, yest)) return 'Yesterday';
+    return ts.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+  }
+
+  // ── Settings ──────────────────────────────────────────────────────────
+
+  function openSettings() {
+    document.getElementById('settings-backdrop').classList.add('open');
+  }
+
+  function closeSettings() {
+    document.getElementById('settings-backdrop').classList.remove('open');
+  }
+
+  function restartPrototype() {
+    closeSettings();
+    entries = getBaselineEntries();
+    state.idx         = 0;
+    state.replaceId   = null;
+    state.editingId   = null;
+    state.openEntryId = null;
+    ITEMS.forEach(i => { state.counts[i.id] = null; });
+    renderHome();
+    show('home-view');
+    showToast('Prototype reset');
+  }
+
+  // ── Onboarding ────────────────────────────────────────────────────────
+
+  function dismissOnboard() {
+    document.getElementById('onboard-overlay').classList.add('hidden');
+  }
+
+  let _tt;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+</script>
+</body>
+</html>
