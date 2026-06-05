@@ -306,13 +306,11 @@
       padding: 20px 24px 8px; gap: 12px;
       overflow: hidden; will-change: opacity, transform;
     }
-    .img-placeholder {
+    .item-img {
       width: 100%; max-width: 340px; aspect-ratio: 4/3;
-      background: var(--cream-dark); border-radius: 20px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 10px; flex-shrink: 0;
+      border-radius: 20px; object-fit: cover; flex-shrink: 0;
+      background: var(--cream-dark);
     }
-    .img-ph-label { font-size: 12px; color: #B8AD9E; font-weight: 500; }
     .item-cat      { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
     .item-name-big { font-size: 26px; font-weight: 750; letter-spacing: -0.5px; text-align: center; }
     .item-unit-big { font-size: 15px; color: var(--muted); }
@@ -633,14 +631,7 @@
   </header>
 
   <div class="item-stage" id="item-stage">
-    <div class="img-placeholder">
-      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-        <rect x="5" y="9" width="34" height="26" rx="4" stroke="#B8AD9E" stroke-width="2"/>
-        <circle cx="15" cy="18" r="3.5" stroke="#B8AD9E" stroke-width="2"/>
-        <path d="M5 30L15 19L22 27L30 18L39 30" stroke="#B8AD9E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span class="img-ph-label">Image placeholder</span>
-    </div>
+    <img class="item-img" id="item-img" src="" alt="" draggable="false">
     <p class="item-cat"       id="item-cat"></p>
     <h2 class="item-name-big" id="item-name-big"></h2>
     <p class="item-unit-big"  id="item-unit-big"></p>
@@ -773,16 +764,16 @@
   // ── Items ─────────────────────────────────────────────────────────────
 
   const ITEMS = [
-    { id:'beans',   name:'Espresso Beans',    unit:'bags',    cat:'Coffee & Matcha' },
-    { id:'matcha',  name:'Matcha Powder',      unit:'tubs',    cat:'Coffee & Matcha' },
-    { id:'milk-w',  name:'Whole Milk',         unit:'L',       cat:'Milk'            },
-    { id:'milk-o',  name:'Oat Milk',           unit:'L',       cat:'Milk'            },
-    { id:'syr-van', name:'Vanilla Syrup',      unit:'bottles', cat:'Syrups'          },
-    { id:'syr-car', name:'Caramel Syrup',      unit:'bottles', cat:'Syrups'          },
-    { id:'syr-brs', name:'Brown Sugar Syrup',  unit:'bottles', cat:'Syrups'          },
-    { id:'cup-s',   name:'Cups — Small',       unit:'units',   cat:'Packaging'       },
-    { id:'cup-l',   name:'Cups — Large',       unit:'units',   cat:'Packaging'       },
-    { id:'lids',    name:'Lids',               unit:'packs',   cat:'Packaging'       },
+    { id:'beans',   name:'Espresso Beans',    unit:'bags',    cat:'Coffee & Matcha', img:'images/beans.jpg'   },
+    { id:'matcha',  name:'Matcha Powder',      unit:'tubs',    cat:'Coffee & Matcha', img:'images/matcha.jpg'  },
+    { id:'milk-w',  name:'Whole Milk',         unit:'L',       cat:'Milk',            img:'images/milk-w.jpg'  },
+    { id:'milk-o',  name:'Oat Milk',           unit:'L',       cat:'Milk',            img:'images/milk-o.jpg'  },
+    { id:'syr-van', name:'Vanilla Syrup',      unit:'bottles', cat:'Syrups',          img:'images/syr-van.jpg' },
+    { id:'syr-car', name:'Caramel Syrup',      unit:'bottles', cat:'Syrups',          img:'images/syr-car.jpg' },
+    { id:'syr-brs', name:'Brown Sugar Syrup',  unit:'bottles', cat:'Syrups',          img:'images/syr-brs.jpg' },
+    { id:'cup-s',   name:'Cups — Small',       unit:'units',   cat:'Packaging',       img:'images/cup-s.jpg'   },
+    { id:'cup-l',   name:'Cups — Large',       unit:'units',   cat:'Packaging',       img:'images/cup-l.jpg'   },
+    { id:'lids',    name:'Lids',               unit:'packs',   cat:'Packaging',       img:'images/lids.jpg'    },
   ];
 
   // ── Historical entries ────────────────────────────────────────────────
@@ -1074,6 +1065,8 @@
     document.getElementById('wiz-prog-fill').style.width = pct + '%';
     document.getElementById('wiz-prog-label').textContent = `Item ${state.idx + 1} of ${ITEMS.length}`;
 
+    document.getElementById('item-img').src              = item.img;
+    document.getElementById('item-img').alt              = item.name;
     document.getElementById('item-cat').textContent      = item.cat;
     document.getElementById('item-name-big').textContent = item.name;
     document.getElementById('item-unit-big').textContent = item.unit;
